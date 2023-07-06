@@ -1,6 +1,5 @@
-use std::fs::File;
+use std::fs;
 use std::process;
-use std::io::{BufRead, BufReader};
 use std::error::Error;
 
 static NOT_ENOUGH_ARGS_ERR: &str = "Not enough arguments";
@@ -24,38 +23,48 @@ impl Config {
     }
 }
 
-fn perform_search(command: Config) -> Result<String, &'static str> {
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
 
-    let file = File::open(command.file_path).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {err}");
-        process::exit(1);
-    });
-    let reader = BufReader::new(file);
-
-    for l in reader.lines() {
-        let line = l.unwrap_or_else(|err| {
-            println!("Problem parsing arguments: {err}");
-            process::exit(1);
-        });
-        if line.contains(command.query.as_str()) {
-            return Ok(format!("Found '{:?}' in line: {:?}", command.query, line));
+    let mut matches = Vec::new();
+    for line in contents.lines() {
+        if line.contains(query) {
+            matches.push(line);
         }
     }
 
-    return Ok(String::from("No matches found"));
+    return matches;
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
-    let result = perform_search(config)?;
-    println!("{}", result);
+    let contents = fs::read_to_string(config.file_path)?;
+
+    for line in search(&config.query, &contents) {
+        println!("{}", line);
+    }
 
     return Ok(());
 }
 
 #[cfg(test)]
+mod search_tests {
+    use super::*;
+
+    #[test]
+    fn one_result() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+}
+
+#[cfg(test)]
 mod config_tests {
-    use crate::Config;
+    use super::*;
 
     #[test]
     fn it_should_fail_with_less_then_three_args() {
@@ -68,49 +77,3 @@ mod config_tests {
         assert!(result_two_args.is_err(), "{}", crate::NOT_ENOUGH_ARGS_ERR);
     }
 }
-
-#[cfg(test)]
-mod run_tests {
-    use crate::Config;
-
-    #[test]
-    fn it_should_fail_with_less_then_three_args() {
-
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
