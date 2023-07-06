@@ -1,48 +1,51 @@
-use std::fs;
-use std::io::{BufRead, BufReader, Error};
+use std::{fs, process};
+use std::io::{BufRead, BufReader};
+use std::error::Error;
 
-pub fn run(args: Vec<String>) -> Result<(), Error> {
+pub struct Config {
+    query: String,
+    file_path: String,
+}
 
-    let command = get_grep_command(args);
-    perform_search(command)?;
+impl Config {
+
+    pub fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+
+        let query = args[1].clone();
+        let file_path = args[2].clone();
+
+        Ok(Config { query, file_path })
+    }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+
+    let result = perform_search(config)?;
+    println!("{}", result);
 
     return Ok(());
 }
 
-#[derive(Debug, Clone)]
-pub struct MiniGrepError;
+fn perform_search(command: Config) -> Result<String, &'static str> {
 
-struct GrepCommand {
-    query: String,
-    file_name: String,
-}
-
-fn get_grep_command(args: Vec<String>) -> GrepCommand {
-
-    if args.len() == 1 {
-        panic!("No arguments provided.");
-    }
-    if args.len() == 2 {
-        panic!("Only one argument was provided but 2 are required.");
-    }
-
-    let query = args[1].clone();
-    let file_name = args[2].clone();
-
-    return GrepCommand { query, file_name, };
-}
-
-fn perform_search(command: GrepCommand) -> Result<(), Error> {
-
-    let file = fs::File::open(command.file_name)?;
+    let file = fs::File::open(command.file_path).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
     let reader = BufReader::new(file);
 
-    for line in reader.lines() {
-        let line = line?;
+    for l in reader.lines() {
+        let line = l.unwrap_or_else(|err| {
+            println!("Problem parsing arguments: {err}");
+            process::exit(1);
+        });
         if line.contains(command.query.as_str()) {
-            println!("Found '{}' in line: {}", command.query, line);
+            return Ok(format!("Found '{:?}' in line: {:?}", command.query, line));
         }
     }
 
-    return Ok(());
+    return Ok(String::from("No matches found"));
 }
