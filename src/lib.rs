@@ -39,14 +39,10 @@ impl Config {
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
 
-    let mut matches = Vec::new();
-    for line in contents.lines() {
-        if line.contains(query) {
-            matches.push(line);
-        }
-    }
-
-    return matches;
+    return contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect();
 }
 
 pub fn search_case_insensitive<'a>(
@@ -55,15 +51,10 @@ pub fn search_case_insensitive<'a>(
 ) -> Vec<&'a str> {
 
     let lowercase_query = &query.to_lowercase();
-    let mut matches = Vec::new();
-
-    for line in contents.lines() {
-        if line.to_lowercase().contains(lowercase_query) {
-            matches.push(line);
-        }
-    }
-
-    return matches;
+    return contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(lowercase_query))
+        .collect();
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -116,13 +107,13 @@ mod config_tests {
 
     #[test]
     fn should_fail() {
-        let result_no_args = Config::build(&vec![]);
-        let result_one_arg = Config::build(&vec![String::from("arg1")]);
-        let result_two_args = Config::build(&vec![String::from("arg1"), String::from("arg2")]);
+        let result_no_args = Config::build(Vec::new().into_iter());
+        let result_one_arg = Config::build(vec![String::from("arg1")].into_iter());
+        let result_two_args = Config::build(vec![String::from("arg1"), String::from("arg2")].into_iter());
 
-        assert!(result_no_args.is_err(), "{}", crate::NOT_ENOUGH_ARGS_ERR);
-        assert!(result_one_arg.is_err(), "{}", crate::NOT_ENOUGH_ARGS_ERR);
-        assert!(result_two_args.is_err(), "{}", crate::NOT_ENOUGH_ARGS_ERR);
+        assert!(result_no_args.is_err(), "{}", "Didn't get a query string");
+        assert!(result_one_arg.is_err(), "{}",  "Didn't get a query string");
+        assert!(result_two_args.is_err(), "{}", "Didn't get a file path");
     }
 
     #[test]
@@ -132,8 +123,8 @@ mod config_tests {
             String::from("man"),
             String::from("./example"),
             String::from("-i")
-        ];
-        let config = Config::build(&args).unwrap();
+        ].into_iter();
+        let config = Config::build(args).unwrap();
 
         assert_eq!(config.ignore_case, true);
     }
