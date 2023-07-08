@@ -1,8 +1,6 @@
 use std::{fs, env};
 use std::error::Error;
 
-static NOT_ENOUGH_ARGS_ERR: &str = "Not enough arguments";
-
 pub struct Config {
     query: String,
     file_path: String,
@@ -11,15 +9,22 @@ pub struct Config {
 
 impl Config {
 
-    pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err(NOT_ENOUGH_ARGS_ERR);
-        }
+    pub fn build(
+        mut args: impl Iterator<Item = String>
+    ) -> Result<Config, &'static str> {
+        args.next();
 
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
 
-        let ignore_case = match args.get(3) {
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file path"),
+        };
+
+        let ignore_case = match args.next() {
             Some(value) => value == "-i",
             None => env::var("IGNORE_CASE").is_ok(),
         };
