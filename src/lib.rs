@@ -1,5 +1,6 @@
 use std::{fs, env};
 use std::error::Error;
+use regex::RegexBuilder;
 
 pub struct Config {
     query: String,
@@ -42,6 +43,7 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     return contents
         .lines()
         .filter(|line| line.contains(query))
+        .map(|line| highlight_query(line, query, false))
         .collect();
 }
 
@@ -54,6 +56,7 @@ pub fn search_case_insensitive<'a>(
     return contents
         .lines()
         .filter(|line| line.to_lowercase().contains(lowercase_query))
+        .map(|line| highlight_query(line, query, true))
         .collect();
 }
 
@@ -72,6 +75,23 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     }
 
     return Ok(());
+}
+
+fn highlight_query<'a>(
+    line: &'a str,
+    query: &str,
+    case_sensitive: bool
+) -> &'a str {
+
+    let query_regex = RegexBuilder::new(&format!("{}", query))
+        .case_insensitive(case_sensitive)
+        .build()
+        .unwrap();
+
+    let highlighted = query_regex.replace_all(line, "\x1b[31m$0\x1b[0m");
+    let highlighted_ref: &str = Box::leak(highlighted.into_owned().into_boxed_str());
+
+    return highlighted_ref;
 }
 
 #[cfg(test)]
