@@ -80,11 +80,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 fn highlight_query<'a>(
     line: &'a str,
     query: &str,
-    case_sensitive: bool
+    case_insensitive: bool
 ) -> &'a str {
 
     let query_regex = RegexBuilder::new(&format!("{}", query))
-        .case_insensitive(case_sensitive)
+        .case_insensitive(case_insensitive)
         .build()
         .unwrap();
 
@@ -106,7 +106,11 @@ Rust:
 safe, fast, productive.
 Duct tape.";
 
-        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+        let expected: Vec<&str> = vec!["safe, fast, productive."]
+            .iter()
+            .map(|line| highlight_query(line, query, false))
+            .collect();
+        assert_eq!(expected, search(query, contents));
     }
 
     #[test]
@@ -117,7 +121,11 @@ Rust:
 safe, fast, productive.
 Trust me.";
 
-        assert_eq!(vec!["Rust:", "Trust me."], search_case_insensitive(query, contents));
+        let expected: Vec<&str> = vec!["Rust:", "Trust me."]
+            .iter()
+            .map(|line| highlight_query(line, query, true))
+            .collect();
+        assert_eq!(expected, search_case_insensitive(query, contents));
     }
 }
 
